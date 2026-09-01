@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>His Location Sender</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <style>
+        body {
+            background-color: #0d0d12;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 90vh;
+        }
+        .header { text-align: center; margin-top: 20px; }
+        .icon-box {
+            width: 70px; height: 70px; background: rgba(255, 59, 48, 0.15);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 10px auto; color: #ff3b30; font-size: 30px;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px; padding: 20px; width: 100%; max-width: 320px;
+            box-sizing: border-box; margin-bottom: 15px;
+        }
+        .status { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; background: #30d158; box-shadow: 0 0 8px #30d158; }
+        .row { display: flex; justify-content: space-between; margin: 10px 0; font-family: monospace; }
+        .label { color: #8e8e93; font-size: 12px; font-weight: bold; }
+        button {
+            background: #ff3b30; color: white; border: none; padding: 16px;
+            width: 100%; max-width: 320px; border-radius: 16px; font-size: 16px;
+            font-weight: bold; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="icon-box">📍</div>
+        <h2>His Location Sender</h2>
+        <p style="color: #8e8e93; font-size: 13px;">Valentine's Compass Service</p>
+    </div>
+
+    <div class="card">
+        <div class="status">
+            <div class="dot" id="statusDot"></div>
+            <span id="statusText" style="color:#30d158;">GPS Takibi Aktif</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="label">LATITUDE</div>
+        <div class="row"><span id="lat">--.------</span></div>
+        <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1);">
+        <div class="label">LONGITUDE</div>
+        <div class="row"><span id="lng">--.------</span></div>
+    </div>
+
+    <button onclick="startTracking()">Konum Takibini Başlat</button>
+
+    <script>
+        const firebaseURL = "https://valentinecompass-default-rtdb.firebaseio.com/hisLocation.json";
+
+        function sendToFirebase(lat, lng) {
+            fetch(firebaseURL, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ latitude: lat, longitude: lng, timestamp: Date.now() })
+            })
+            .then(() => {
+                document.getElementById('lat').innerText = lat.toFixed(5);
+                document.getElementById('lng').innerText = lng.toFixed(5);
+            })
+            .catch(err => console.error("Firebase Hata:", err));
+        }
+
+        function startTracking() {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.watchPosition(
+                    (pos) => {
+                        sendToFirebase(pos.coords.latitude, pos.coords.longitude);
+                    },
+                    (err) => {
+                        document.getElementById('statusText').innerText = "GPS Hatası!";
+                        document.getElementById('statusText').style.color = "#ff3b30";
+                        document.getElementById('statusDot').style.background = "#ff3b30";
+                    },
+                    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+                );
+            }
+        }
+    </script>
+</body>
+</html>

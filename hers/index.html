@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Valentine's Compass</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <style>
+        body {
+            background-color: #0d0d12; color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0; padding: 20px; display: flex; flex-direction: column;
+            align-items: center; justify-content: space-between; min-height: 90vh;
+        }
+        .header { text-align: center; margin-top: 10px; }
+        .icon-box {
+            width: 70px; height: 70px; background: rgba(255, 59, 48, 0.15);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 10px auto; color: #ff3b30; font-size: 30px;
+        }
+        .metrics-row { display: flex; gap: 15px; width: 100%; max-width: 340px; }
+        .tile {
+            background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 18px; padding: 15px; flex: 1; box-sizing: border-box;
+        }
+        .tile-val { font-size: 24px; font-weight: bold; font-family: monospace; margin: 8px 0; }
+        .tile-lbl { font-size: 9px; font-weight: bold; color: #8e8e93; }
+        .card {
+            background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px; padding: 20px; width: 100%; max-width: 340px; box-sizing: border-box;
+        }
+        .status { display: flex; justify-content: space-between; align-items: center; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: #ff9500; display: inline-block; }
+        button {
+            background: #ff3b30; color: white; border: none; padding: 16px;
+            width: 100%; max-width: 340px; border-radius: 16px; font-size: 15px;
+            font-weight: bold; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="icon-box">🧭</div>
+        <h2>Valentine's Compass</h2>
+        <p style="color: #8e8e93; font-size: 13px;">Bridge App (Web Edition)</p>
+    </div>
+
+    <div class="metrics-row">
+        <div class="tile">
+            <span style="color: #ff3b30;">🧭</span>
+            <div class="tile-val" id="bearing">0°</div>
+            <div class="tile-lbl">TARGET BEARING</div>
+        </div>
+        <div class="tile">
+            <span style="color: #30d158;">🚶</span>
+            <div class="tile-val" id="distance">--m</div>
+            <div class="tile-lbl">DISTANCE</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="status">
+            <span style="color: #8e8e93; font-size: 11px; font-weight: bold;">BLE COMPASS</span>
+            <div>
+                <span class="dot" id="bleDot"></span>
+                <span id="bleStatus" style="color: #ff9500; font-size: 12px; font-weight: 600;">Disconnected</span>
+            </div>
+        </div>
+        <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 15px 0;">
+        <div style="display:flex; justify-size:space-between; font-family:monospace; font-size:13px;">
+            <span style="color: #8e8e93;">HIS LAT:</span>
+            <span id="hisLat">--.------</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-family:monospace; font-size:13px; margin-top: 8px;">
+            <span style="color: #8e8e93;">HIS LNG:</span>
+            <span id="hisLng">--.------</span>
+        </div>
+    </div>
+
+    <button onclick="connectBLE()">Connect to Compass Device</button>
+
+    <script>
+        const firebaseURL = "https://valentinecompass-default-rtdb.firebaseio.com/hisLocation.json";
+        const serviceUUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+        const characteristicUUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+
+        let bleCharacteristic = null;
+        let herLat = 0, herLng = 0;
+        let hisLat = 0, hisLng = 0;
+
+        // 1. Firebase Polling
+        setInterval(() => {
+            fetch(firebaseURL)
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.latitude && data.longitude) {
+                        hisLat = data.latitude;
+                        hisLng = data.longitude;
+                        document.getElementById('hisLat').innerText = hisLat.toFixed(5);
+                        document.getElementById('hisLng').innerText = hisLng.toFixed(5);
+                        calculateMath();
+                    }
+                });
+        }, 3000);
+
+        // 2. Her GPS Tracking
+        if ("geolocation" in navigator) {
+            navigator.geolocation.watchPosition(pos => {
+                herLat = pos.coords.latitude;
+                herLng = pos.coords.longitude;
+                calculateMath();
+            }, null, { enableHighAccuracy: true });
+        }
+
+        // 3. Spherical Math Engine
+        function calculateMath() {
+            if (!herLat || !hisLat) return;
+
+            const R = 6371e3; // Metre cinsinden Dünya yarıçapı
+            const φ1 = herLat * Math.PI/180;
+            const φ2 = hisLat * Math.PI/180;
+            const Δφ = (hisLat-herLat) * Math.PI/180;
+            const Δλ = (hisLng-herLng) * Math.PI/180;
+
+            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                      Math.cos(φ1) * Math.cos(φ2) *
+                      Math.sin(Δλ/2) * Math.sin(Δλ/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const d = R * c;
+
+            const distStr = d < 1000 ? `${Math.round(d)}m` : `${(d/1000).toFixed(1)}km`;
+            document.getElementById('distance').innerText = distStr;
+
+            const y = Math.sin(Δλ) * Math.cos(φ2);
+            const x = Math.cos(φ1)*Math.sin(φ2) - Math.sin(φ1)*Math.cos(φ2)*Math.cos(Δλ);
+            let bearing = Math.atan2(y, x) * 180 / Math.PI;
+            if (bearing < 0) bearing += 360;
+
+            const finalAngle = Math.round(bearing);
+            document.getElementById('bearing').innerText = `${finalAngle}°`;
+
+            // BLE Transmit
+            if (bleCharacteristic) {
+                const encoder = new TextEncoder();
+                bleCharacteristic.writeValue(encoder.encode(`${finalAngle},${distStr}`));
+            }
+        }
+
+        // 4. Web Bluetooth Connection
+        async function connectBLE() {
+            try {
+                const device = await navigator.bluetooth.requestDevice({
+                    filters: [{ services: [serviceUUID] }]
+                });
+                const server = await device.gatt.connect();
+                const service = await server.getPrimaryService(serviceUUID);
+                bleCharacteristic = await service.getCharacteristic(characteristicUUID);
+
+                document.getElementById('bleStatus').innerText = "Connected";
+                document.getElementById('bleStatus').style.color = "#30d158";
+                document.getElementById('bleDot').style.background = "#30d158";
+            } catch (err) {
+                console.error("BLE Bağlantı Hatası:", err);
+            }
+        }
+    </script>
+</body>
+</html>
