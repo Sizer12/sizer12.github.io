@@ -8,8 +8,8 @@
     <!-- iOS PWA & App Icon Settings -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="compass.png">
-    <link rel="icon" type="image/png" href="compass.png">
+    <link rel="apple-touch-icon" href="her-icon.png">
+    <link rel="icon" type="image/png" href="her-icon.png">
 
     <style>
         body {
@@ -17,6 +17,7 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             margin: 0; padding: 20px; display: flex; flex-direction: column;
             align-items: center; justify-content: space-between; min-height: 90vh;
+            overflow: hidden;
         }
         .header { text-align: center; margin-top: 10px; }
         .icon-box {
@@ -42,9 +43,37 @@
             width: 100%; max-width: 340px; border-radius: 16px; font-size: 15px;
             font-weight: bold; cursor: pointer;
         }
+
+        /* --- 5 Metre Altı Kalp Animasyon Katmanı --- */
+        #heartOverlay {
+            display: none;
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(13, 13, 18, 0.9);
+            z-index: 999;
+            flex-direction: column; align-items: center; justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+        .big-heart {
+            font-size: 100px;
+            animation: pulse 1s infinite alternate ease-in-out;
+        }
+        .love-text {
+            font-size: 24px; font-weight: bold; color: #ff3b30; margin-top: 20px;
+            text-align: center; font-family: -apple-system, sans-serif;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); filter: drop-shadow(0 0 10px rgba(255,59,48,0.5)); }
+            100% { transform: scale(1.3); filter: drop-shadow(0 0 30px rgba(255,59,48,1)); }
+        }
     </style>
 </head>
 <body>
+
+    <!-- 5M Altı Özel Pop-up Katmanı -->
+    <div id="heartOverlay">
+        <div class="big-heart">❤️</div>
+        <div class="love-text">Kavuştunuz! 🥰</div>
+    </div>
 
     <div class="header">
         <div class="icon-box">🧭</div>
@@ -119,11 +148,11 @@
             }, null, { enableHighAccuracy: true });
         }
 
-        // 3. Spherical Math Engine
+        // 3. Spherical Math Engine & 5m Animasyon Kontrolü
         function calculateMath() {
             if (!herLat || !hisLat) return;
 
-            const R = 6371e3; // Earth radius in meters
+            const R = 6371e3; 
             const φ1 = herLat * Math.PI/180;
             const φ2 = hisLat * Math.PI/180;
             const Δφ = (hisLat-herLat) * Math.PI/180;
@@ -134,6 +163,14 @@
                       Math.sin(Δλ/2) * Math.sin(Δλ/2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
             const d = R * c;
+
+            // --- 5 Metre Altı Animasyon Tetikleyici ---
+            const overlay = document.getElementById('heartOverlay');
+            if (d <= 5) {
+                overlay.style.display = 'flex'; // Animasyonu Göster
+            } else {
+                overlay.style.display = 'none';  // 5m üzerindeyse Gizle
+            }
 
             const distStr = d < 1000 ? `${Math.round(d)}m` : `${(d/1000).toFixed(1)}km`;
             document.getElementById('distance').innerText = distStr;
@@ -153,10 +190,10 @@
             }
         }
 
-        // 4. Web Bluetooth Connection (Permissive Scanning)
+        // 4. Web Bluetooth Connection
         async function connectBLE() {
             if (!navigator.bluetooth) {
-                alert("iOS Safari Web Bluetooth desteklemiyor. Lütfen App Store'dan Bluefy veya WebBLE uygulamasını indirip bu adresi orada açın.");
+                alert("Web Bluetooth desteklenmiyor. Lütfen Bluefy kullanın.");
                 return;
             }
 
