@@ -4,8 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>His Location Sender</title>
+
+    <!-- iOS PWA & App Icon Settings -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="his-icon.png">
+    <link rel="icon" type="image/png" href="his-icon.png">
+
     <style>
         body {
             background-color: #0d0d12;
@@ -96,6 +101,8 @@
                     },
                     { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
                 );
+            } else {
+                alert("Tarayıcınız konum servisini desteklemiyor.");
             }
         }
     </script>
