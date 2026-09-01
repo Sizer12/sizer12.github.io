@@ -4,8 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Valentine's Compass</title>
+
+    <!-- iOS PWA & App Icon Settings -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="her-icon.png">
+    <link rel="icon" type="image/png" href="her-icon.png">
+
     <style>
         body {
             background-color: #0d0d12; color: #ffffff;
@@ -69,7 +74,7 @@
             </div>
         </div>
         <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 15px 0;">
-        <div style="display:flex; justify-size:space-between; font-family:monospace; font-size:13px;">
+        <div style="display:flex; justify-content:space-between; font-family:monospace; font-size:13px;">
             <span style="color: #8e8e93;">HIS LAT:</span>
             <span id="hisLat">--.------</span>
         </div>
@@ -118,7 +123,7 @@
         function calculateMath() {
             if (!herLat || !hisLat) return;
 
-            const R = 6371e3; // Metre cinsinden Dünya yarıçapı
+            const R = 6371e3; // Earth radius in meters
             const φ1 = herLat * Math.PI/180;
             const φ2 = hisLat * Math.PI/180;
             const Δφ = (hisLat-herLat) * Math.PI/180;
@@ -148,12 +153,19 @@
             }
         }
 
-        // 4. Web Bluetooth Connection
+        // 4. Web Bluetooth Connection (Permissive Scanning)
         async function connectBLE() {
+            if (!navigator.bluetooth) {
+                alert("iOS Safari Web Bluetooth desteklemiyor. Lütfen App Store'dan Bluefy veya WebBLE uygulamasını indirip bu adresi orada açın.");
+                return;
+            }
+
             try {
                 const device = await navigator.bluetooth.requestDevice({
-                    filters: [{ services: [serviceUUID] }]
+                    acceptAllDevices: true,
+                    optionalServices: [serviceUUID]
                 });
+                
                 const server = await device.gatt.connect();
                 const service = await server.getPrimaryService(serviceUUID);
                 bleCharacteristic = await service.getCharacteristic(characteristicUUID);
@@ -162,7 +174,8 @@
                 document.getElementById('bleStatus').style.color = "#30d158";
                 document.getElementById('bleDot').style.background = "#30d158";
             } catch (err) {
-                console.error("BLE Bağlantı Hatası:", err);
+                console.error("BLE Hata:", err);
+                alert("Bluetooth Bağlantı Hatası: " + err.message);
             }
         }
     </script>
